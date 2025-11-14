@@ -1,39 +1,9 @@
-/**
- * @import {HtmlExtension} from 'micromark-util-types'
- */
+import {micromark} from 'micromark'
+import {gfmTaskListItem} from './dev/lib/syntax.js'
 
-/**
- * Create an HTML extension for `micromark` to support GFM task list items when
- * serializing to HTML.
- *
- * @returns {HtmlExtension}
- *   Extension for `micromark` that can be passed in `htmlExtensions` to
- *   support GFM task list items when serializing to HTML.
- */
-export function gfmTaskListItemHtml() {
+function paraBuffer() {
   return {
     enter: {
-      listOrdered() {
-        const hasTaskList = this.getData('hasTaskListInCurrentList')
-        if (hasTaskList) {
-          this.lineEndingIfNeeded()
-          this.tag('<ol class="contains-task-list"')
-          const value = this.getData('expectFirstItem')
-          if (value !== undefined && value !== 1) {
-            this.tag(' start="' + this.encode(String(value)) + '"')
-          }
-          this.tag('>')
-          this.setData('hasTaskListInCurrentList', false)
-        }
-      },
-      listUnordered() {
-        const hasTaskList = this.getData('hasTaskListInCurrentList')
-        if (hasTaskList) {
-          this.lineEndingIfNeeded()
-          this.tag('<ul class="contains-task-list">')
-          this.setData('hasTaskListInCurrentList', false)
-        }
-      },
       listItemMarker() {
         if (this.getData('expectFirstItem')) {
           this.tag('>')
@@ -42,12 +12,12 @@ export function gfmTaskListItemHtml() {
         }
         
         this.lineEndingIfNeeded()
-        // Mark that we need to generate a list item tag
+        // Mark that we're starting a list item - we'll replace this later if needed
         this.setData('needsListItemTag', true)
       },
       paragraph() {
         if (this.getData('needsListItemTag')) {
-          // Buffer the paragraph content so we can check for task list checkbox first
+          // Start buffering the paragraph content
           this.buffer()
         }
       },
@@ -55,13 +25,11 @@ export function gfmTaskListItemHtml() {
         const char = this.sliceSerialize(token)
         this.setData('taskListCheckboxChar', char)
         this.setData('taskListCheckboxChecked', true)
-        this.setData('hasTaskListInCurrentList', true)
       },
       taskListCheckValueUnchecked(token) {
         const char = this.sliceSerialize(token)
         this.setData('taskListCheckboxChar', char)
         this.setData('taskListCheckboxChecked', false)
-        this.setData('hasTaskListInCurrentList', true)
       },
       taskListCheck() {
         this.tag('<span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" ')
@@ -74,7 +42,6 @@ export function gfmTaskListItemHtml() {
           const char = this.getData('taskListCheckboxChar')
           const isChecked = this.getData('taskListCheckboxChecked')
           
-          // Generate the <li> tag with appropriate attributes
           if (char !== undefined) {
             const classes = isChecked ? 'task-list-item is-checked' : 'task-list-item'
             this.tag(`<li data-task="${this.encode(char)}" class="${classes}">`)
@@ -82,21 +49,18 @@ export function gfmTaskListItemHtml() {
             this.tag('<li>')
           }
           
-          // Check if we need <p> tags (tight vs loose list)
-          const tight = this.getData('tightStack').at(-1)
-          if (!tight) {
+          // Check if paragraph needs <p> tags (tight vs loose list)
+          if (!this.getData('tightStack').at(-1)) {
             this.tag('<p>')
           }
           
-          // Output the buffered paragraph content
           this.raw(buffered)
           
-          if (!tight) {
+          if (!this.getData('tightStack').at(-1)) {
             this.lineEndingIfNeeded()
             this.tag('</p>')
           }
           
-          // Clean up state
           this.setData('needsListItemTag', false)
           this.setData('taskListCheckboxChar', undefined)
           this.setData('taskListCheckboxChecked', undefined)
@@ -113,3 +77,12 @@ export function gfmTaskListItemHtml() {
     }
   }
 }
+
+const input = '* [x] checked\n* [ ] unchecked\n* normal'
+const output = micromark(input, {
+  extensions: [gfmTaskListItem()],
+  htmlExtensions: [paraBuffer()]
+})
+
+console.log('Output:')
+console.log(output)

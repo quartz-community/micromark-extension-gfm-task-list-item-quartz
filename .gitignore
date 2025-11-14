@@ -6,4 +6,5 @@ node_modules/
 /lib/
 /index.js
 yarn.lock
+tsconfig.tsbuildinfo
 !dev/index.d.ts
