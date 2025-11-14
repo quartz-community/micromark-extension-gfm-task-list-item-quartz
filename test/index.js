@@ -27,7 +27,7 @@ test('markdown -> html (micromark)', async function (t) {
           extensions: [gfmTaskListItem(), {disable: {null: ['tasklistCheck']}}],
           htmlExtensions: [gfmTaskListItemHtml()]
         }),
-        '<ul>\n<li>[ ] foo</li>\n</ul>'
+        '<ul><li>[ ] foo</li>\n</ul>\n'
       )
     }
   )
@@ -38,7 +38,7 @@ test('markdown -> html (micromark)', async function (t) {
         extensions: [gfmTaskListItem()],
         htmlExtensions: [gfmTaskListItemHtml()]
       }),
-      '<ul>\n<li>[x]</li>\n</ul>'
+      '<ul><li>[x]</li>\n</ul>\n'
     )
   })
 
@@ -48,9 +48,74 @@ test('markdown -> html (micromark)', async function (t) {
         extensions: [gfmTaskListItem()],
         htmlExtensions: [gfmTaskListItemHtml()]
       }),
-      '<ul>\n<li></li>\n</ul>\n<p>[x]</p>'
+      '<ul></li>\n</ul>\n\n<li>[x]'
     )
   })
+
+  await t.test(
+    'should support ordered lists with task items',
+    async function () {
+      assert.deepEqual(
+        micromark('1. [x] foo\n2. [ ] bar', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ol class="contains-task-list"><li data-task="x" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked="" > foo</li>\n<li data-task=" " class="task-list-item"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" > bar</li>\n</ol>\n'
+      )
+    }
+  )
+
+  await t.test(
+    'should support ordered lists without task items',
+    async function () {
+      assert.deepEqual(
+        micromark('1. foo\n2. bar', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ol><li>foo</li>\n<li>bar</li>\n</ol>\n'
+      )
+    }
+  )
+
+  await t.test(
+    'should support mixed task and non-task items in ordered list',
+    async function () {
+      assert.deepEqual(
+        micromark('1. [x] foo\n2. bar', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ol class="contains-task-list"><li data-task="x" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked="" > foo</li>\n<li>bar</li>\n</ol>\n'
+      )
+    }
+  )
+
+  await t.test(
+    'should accept any character as checkbox marker',
+    async function () {
+      assert.deepEqual(
+        micromark('* [!] important\n* [?] question\n* [>] forward', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ul class="contains-task-list"><li data-task="!" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked="" > important</li>\n<li data-task="?" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked="" > question</li>\n<li data-task="&gt;" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked="" > forward</li>\n</ul>\n'
+      )
+    }
+  )
+
+  await t.test(
+    'should not accept [ or ] as checkbox markers to avoid wikilink confusion',
+    async function () {
+      assert.deepEqual(
+        micromark('* [[] not a checkbox\n* []] also not a checkbox', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ul><li>[[] not a checkbox</li>\n<li>[]] also not a checkbox</li>\n</ul>\n'
+      )
+    }
+  )
 })
 
 test('fixtures', async function (t) {

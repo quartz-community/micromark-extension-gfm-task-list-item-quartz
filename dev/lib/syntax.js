@@ -77,9 +77,7 @@ function tokenizeTasklistCheck(effects, ok, nok) {
    * @type {State}
    */
   function inside(code) {
-    // Currently we match how GH works in files.
-    // To match how GH works in comments, use `markdownSpace` (`[\t ]`) instead
-    // of `markdownLineEndingOrSpace` (`[\t\n\r ]`).
+    // Accept space or tab as unchecked
     if (markdownLineEndingOrSpace(code)) {
       effects.enter('taskListCheckValueUnchecked')
       effects.consume(code)
@@ -87,7 +85,15 @@ function tokenizeTasklistCheck(effects, ok, nok) {
       return close
     }
 
-    if (code === codes.uppercaseX || code === codes.lowercaseX) {
+    // Accept any other character (except [, ], newline, EOF) as checked
+    // This allows Obsidian-flavored checkboxes like [x], [X], [r], [!], etc.
+    // Exclude [ and ] to avoid confusion with wikilink syntax
+    if (
+      code !== codes.leftSquareBracket &&
+      code !== codes.rightSquareBracket &&
+      code !== codes.eof &&
+      !markdownLineEnding(code)
+    ) {
       effects.enter('taskListCheckValueChecked')
       effects.consume(code)
       effects.exit('taskListCheckValueChecked')
