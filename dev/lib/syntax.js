@@ -85,9 +85,11 @@ function tokenizeTasklistCheck(effects, ok, nok) {
       return close
     }
 
-    // Accept any other character (except ], newline, EOF) as checked
+    // Accept any other character (except [, ], newline, EOF) as checked
     // This allows Obsidian-flavored checkboxes like [x], [X], [r], [!], etc.
+    // Exclude [ and ] to avoid confusion with wikilink syntax
     if (
+      code !== codes.leftSquareBracket &&
       code !== codes.rightSquareBracket &&
       code !== codes.eof &&
       !markdownLineEnding(code)

@@ -103,6 +103,19 @@ test('markdown -> html (micromark)', async function (t) {
       )
     }
   )
+
+  await t.test(
+    'should not accept [ or ] as checkbox markers to avoid wikilink confusion',
+    async function () {
+      assert.deepEqual(
+        micromark('* [[] not a checkbox\n* []] also not a checkbox', {
+          extensions: [gfmTaskListItem()],
+          htmlExtensions: [gfmTaskListItemHtml()]
+        }),
+        '<ul><li>[[] not a checkbox</li>\n<li>[]] also not a checkbox</li>\n</ul>\n'
+      )
+    }
+  )
 })
 
 test('fixtures', async function (t) {

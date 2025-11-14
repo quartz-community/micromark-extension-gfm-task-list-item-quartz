@@ -157,7 +157,8 @@ can be used as a checkbox marker. Common examples:
 * `[>]` — forward/scheduled (treated as checked)
 * `[r]` — review (treated as checked)
 
-Any character except space, tab, or newline can be used as a checkbox marker.
+Any character except space, tab, newline, `[`, or `]` can be used as a checkbox marker.
+The square brackets `[` and `]` are excluded to avoid confusion with wikilink syntax.
 All non-whitespace characters are treated as "checked" items, allowing custom
 styling based on the `data-task` attribute.
 
@@ -222,7 +223,8 @@ The check must be followed by whitespace (`[\t\n\r ]*`), which is in turn
 followed by non-whitespace.
 
 Whitespace characters (space `%x20` or tab `%x09`) represent unchecked items.
-All other characters represent checked items with custom markers.
+All other characters except `[` and `]` represent checked items with custom markers.
+The square brackets are excluded to avoid confusion with Obsidian's wikilink syntax.
 
 ## Types
 
