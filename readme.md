@@ -32,23 +32,24 @@
 
 ## What is this?
 
-This package contains extensions that add support for task lists as enabled by
-GFM to [`micromark`][micromark].
-It matches how task list items work on `github.com`.
+This package contains extensions that add support for task lists with
+Obsidian-flavored markdown compatibility to [`micromark`][micromark].
+
+Unlike standard GFM which only supports `[x]` and `[ ]`, this extension accepts
+any character as a checkbox marker (e.g., `[!]`, `[?]`, `[>]`), enabling
+Obsidian-compatible task lists with custom styling.
 
 ## When to use this
 
-This project is useful when you want to support task lists in markdown.
+This project is useful when you want to support Obsidian-style task lists in markdown,
+particularly for projects using Quartz or other Obsidian-compatible tools.
 
 You can use these extensions when you are working with [`micromark`][micromark].
-To support all GFM features, use
+For standard GFM support without Obsidian extensions, use
 [`micromark-extension-gfm`][micromark-extension-gfm].
 
 When you need a syntax tree, you can combine this package with
 [`mdast-util-gfm-task-list-item`][mdast-util-gfm-task-list-item].
-
-All these packages are used [`remark-gfm`][remark-gfm], which focusses on making
-it easier to transform content by abstracting these internals away.
 
 ## Install
 
@@ -82,7 +83,7 @@ import {
   gfmTaskListItemHtml
 } from 'micromark-extension-gfm-task-list-item'
 
-const output = micromark('* [x] a\n* [ ] b', {
+const output = micromark('* [x] a\n* [ ] b\n* [!] c', {
   extensions: [gfmTaskListItem()],
   htmlExtensions: [gfmTaskListItemHtml()]
 })
@@ -93,9 +94,10 @@ console.log(output)
 Yields:
 
 ```html
-<ul>
-<li><input type="checkbox" disabled="" checked="" /> a</li>
-<li><input type="checkbox" disabled="" /> b</li>
+<ul class="contains-task-list">
+<li data-task="x" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked /> a</li>
+<li data-task=" " class="task-list-item"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" /> b</li>
+<li data-task="!" class="task-list-item is-checked"><span class="list-bullet"></span><input type="checkbox" class="checkbox-toggle" checked /> c</li>
 </ul>
 ```
 
@@ -111,32 +113,53 @@ Without this condition, production code is loaded.
 
 ### `gfmTaskListItem()`
 
-Create an HTML extension for `micromark` to support GFM task list items
+Create an HTML extension for `micromark` to support Obsidian-flavored task list items
 syntax.
+
+This extension accepts any character as a checkbox marker (not just `x` and space).
+Characters other than space or tab are treated as "checked" items.
 
 ###### Returns
 
-Extension for `micromark` that can be passed in `extensions`, to enable GFM
-task list items syntax ([`Extension`][micromark-extension]).
+Extension for `micromark` that can be passed in `extensions`, to enable task
+list items syntax ([`Extension`][micromark-extension]).
 
 ### `gfmTaskListItemHtml()`
 
-Create an HTML extension for `micromark` to support GFM task list items when
+Create an HTML extension for `micromark` to support task list items when
 serializing to HTML.
+
+This extension generates Obsidian-compatible HTML with:
+
+* `class="contains-task-list"` on lists containing task items
+* `data-task` attribute on list items containing the checkbox character
+* `class="task-list-item is-checked"` on checked items
+* `class="task-list-item"` on unchecked items
+* `<span class="list-bullet"></span>` before each checkbox
+* `class="checkbox-toggle"` on checkbox inputs
+* No `disabled` attribute on checkboxes (enabling interaction)
 
 ###### Returns
 
-Extension for `micromark` that can be passed in `htmlExtensions` to support GFM
+Extension for `micromark` that can be passed in `htmlExtensions` to support
 task list items when serializing to HTML
 ([`HtmlExtension`][micromark-html-extension]).
 
 ## Authoring
 
-It is recommended to use lowercase `x` (instead of uppercase `X`), because in
-markdown, it is more common to use lowercase in places where casing does not
-matter.
-It is also recommended to use a space (instead of a tab), as there is no benefit
-of using tabs in this case.
+This extension supports Obsidian-flavored markdown task lists, where any character
+can be used as a checkbox marker. Common examples:
+
+* `[ ]` — unchecked (space or tab)
+* `[x]` or `[X]` — checked
+* `[!]` — important (treated as checked)
+* `[?]` — question (treated as checked)
+* `[>]` — forward/scheduled (treated as checked)
+* `[r]` — review (treated as checked)
+
+Any character except space, tab, or newline can be used as a checkbox marker.
+All non-whitespace characters are treated as "checked" items, allowing custom
+styling based on the `data-task` attribute.
 
 ## HTML
 
@@ -154,37 +177,52 @@ in the HTML spec for more info.
 
 ## CSS
 
-GitHub itself uses slightly different markup for task list items than they
-define in their spec.
-When following the spec, as this extension does, only inputs are added.
-They can be styled with the following CSS:
+This extension generates Obsidian-compatible markup that can be styled similar to Obsidian.
+You can target specific checkbox types using the `data-task` attribute:
 
 ```css
-input[type="checkbox"] {
-  margin: 0 .2em .25em -1.6em;
-  vertical-align: middle;
+/* Style all checkboxes */
+.task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
 }
 
-input[type="checkbox"]:dir(rtl) {
-  margin: 0 -1.6em .25em .2em;
+/* Style checked items */
+.task-list-item.is-checked {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Style specific checkbox types using data-task attribute */
+li[data-task="!"] {
+  color: red;
+}
+
+li[data-task="?"] {
+  color: orange;
+}
+
+li[data-task=">"] {
+  color: blue;
 }
 ```
 
-For the complete actual CSS see
-[`sindresorhus/github-markdown-css`][github-markdown-css].
+For Obsidian-compatible styling, see the [Obsidian CSS documentation](https://help.obsidian.md/Editing+and+formatting/Basic+formatting+syntax#Task+lists).
 
 ## Syntax
 
 Checks form with the following BNF:
 
 ```abnf
-gfmTaskListItemCheck ::= "[" (%x09 / " " / "X" / "x") "]"
+gfmTaskListItemCheck ::= "[" (%x09 / " " / <any character except ]>) "]"
 ```
 
 The check is only allowed at the start of the first paragraph, optionally
 following zero or more definitions or a blank line, in a list item.
 The check must be followed by whitespace (`[\t\n\r ]*`), which is in turn
 followed by non-whitespace.
+
+Whitespace characters (space `%x20` or tab `%x09`) represent unchecked items.
+All other characters represent checked items with custom markers.
 
 ## Types
 
