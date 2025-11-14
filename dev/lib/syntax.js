@@ -87,7 +87,11 @@ function tokenizeTasklistCheck(effects, ok, nok) {
 
     // Accept any other character (except ], newline, EOF) as checked
     // This allows Obsidian-flavored checkboxes like [x], [X], [r], [!], etc.
-    if (code !== codes.rightSquareBracket && code !== codes.eof && !markdownLineEnding(code)) {
+    if (
+      code !== codes.rightSquareBracket &&
+      code !== codes.eof &&
+      !markdownLineEnding(code)
+    ) {
       effects.enter('taskListCheckValueChecked')
       effects.consume(code)
       effects.exit('taskListCheckValueChecked')
